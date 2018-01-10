@@ -25,7 +25,7 @@ printf "========================================================================
 
 #Remove first line (Col titles) > sed -n '2,$ p' $INPUT_FILE |\
 TOTAL_COUNT=$(sed -n '2,$ p' $INPUT_FILE | cut -c -10,14- | sort | awk -F',' '{count++} END {print count}')
-ERROR_COUNT=$(sed -n '2,$ p' $INPUT_FILE | cut -c -10,14- | sort | awk -F',' '$8  == "false" {count++} END {print count}')
+ERROR_COUNT=$(sed -n '2,$ p' $INPUT_FILE | cut -c -10,14- | sort | awk -F',' -v count=0 '$8  == "false" {count++} END {print count}')
 
 printf "Total Samples: $TOTAL_COUNT\nErrors: $ERROR_COUNT\n" >> $OUTPUT_FILE
 
