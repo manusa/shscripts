@@ -26,8 +26,12 @@ printf "========================================================================
 #Remove first line (Col titles) > sed -n '2,$ p' $INPUT_FILE |\
 TOTAL_COUNT=$(sed -n '2,$ p' $INPUT_FILE | cut -c -10,14- | sort | awk -F',' '{count++} END {print count}')
 ERROR_COUNT=$(sed -n '2,$ p' $INPUT_FILE | cut -c -10,14- | sort | awk -F',' -v count=0 '$8  == "false" {count++} END {print count}')
-
-printf "Total Samples: $TOTAL_COUNT\nErrors: $ERROR_COUNT\n" >> $OUTPUT_FILE
+START_TIME=$(cat $INPUT_FILE | awk -F, 'NR==2{print $1}')
+END_TIME=$(cat $INPUT_FILE | awk -F, 'END{print $1}')
+TOTAL_TIME=$(expr $(expr $END_TIME - $START_TIME) / 1000)
+printf "Spent time %02d:%02d:%02d seconds\n" \
+        $(($TOTAL_TIME/3600)) $(($TOTAL_TIME%3600/60)) $(($TOTAL_TIME%60)) >> $OUTPUT_FILE
+printf "Total Samples: $TOTAL_COUNT\nError Samples: $ERROR_COUNT\n" >> $OUTPUT_FILE
 
 if [ $ERROR_COUNT -ne 0 ]; then
     printf "================================================================================\n">> $OUTPUT_FILE
