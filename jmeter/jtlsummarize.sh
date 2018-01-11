@@ -15,8 +15,6 @@ echo "Processing $INPUT_FILE\c"
 
 ls $INPUT_FILE || { echo "File not found <$INPUT_FILE>"; exit 1 ; }
 
-
-WORK_FILE=$INPUT_FILE.temp
 OUTPUT_FILE=$INPUT_FILE.summary
 
 # Clear output file
