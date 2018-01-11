@@ -3,7 +3,7 @@
 #  Script     : jtlsummarize.sh
 #  Author     : Marc Nuri
 #  Date       : 2018/01/10
-#  Last Edited: 2018/01/10, Marc Nuri
+#  Last Edited: 2018/01/11, Marc Nuri
 #  Description: Script to build a text summary from a JMeter jtl results file
 ############################################################################################################################################
 
