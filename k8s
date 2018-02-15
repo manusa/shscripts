@@ -29,6 +29,7 @@ if [ -z ${K8S_URL+x} ]; then echo "K8S_URL is not set" && exit 1; fi
 # Check for dependencies
 curl -V >/dev/null 2>&1 || { echo >&2 "curl is required for this script" && exit 1 ; }
 jq --help >/dev/null 2>&1 || { echo >&2 "jq is required for this script (https://stedolan.github.io/jq/)" && exit 1 ; }
+awk -V >/dev/null 2>&1 || { echo >&2 "awk is required for this script" && exit 1 ; }
 
 ACTION=$1
 
