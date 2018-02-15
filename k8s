@@ -1,0 +1,60 @@
+#!/bin/sh
+############################################################################################################################################
+#  Script     : k8s
+#  Author     : Marc Nuri
+#  Date       : 2018/02/06
+#  Last Edited: 2018/02/15, Marc Nuri
+#  Description: Script to automate access to Kubernetes web-ui api
+############################################################################################################################################
+
+USAGE=$(cat <<-END
+    Usage: k8s <action>\n\n
+    Must define the following global variables:\n
+	- K8S_URL         URL that point to your kubernetes web-ui\n
+	- K8S_AUTH_HEADER Authorization header\n
+	\n
+	Available actions:\n
+	- list-nodes             Lists available nodes\n
+	- list-pods <node>       Lists pods for a specific node\n
+	- log <namespace> <pod>  Shows the log for a specific POD\n
+END
+)
+
+# Check for parameters
+[ $1 ] || { echo $USAGE; exit 1 ; }
+
+# Check for required environment variables
+if [ -z ${K8S_URL+x} ]; then echo "K8S_URL is not set" && exit 1; fi
+
+# Check for dependencies
+curl -V >/dev/null 2>&1 || { echo >&2 "curl is required for this script" && exit 1 ; }
+jq --help >/dev/null 2>&1 || { echo >&2 "jq is required for this script (https://stedolan.github.io/jq/)" && exit 1 ; }
+
+ACTION=$1
+
+ENCODING_HEADER='Accept-Encoding: gzip, deflate, br'
+
+list_nodes () {
+	curl -sS "$K8S_URL/api/v1/node?itemsPerPage=100&namespace=&page=1" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
+	| jq -r '.nodes[] | .objectMeta.name'
+}
+
+list_pods () {
+	FORMAT="%-60s %-10s %8s\n"
+	printf "$FORMAT" "NAME" "STATUS" "RESTARTS"
+	[ $1 ] || { echo "You must specify a POD"; exit 1 ; }
+	curl -sS "$K8S_URL/api/v1/node/$1/pod?itemsPerPage=9999" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
+	| jq -r '(.pods[] | [.objectMeta.name, .podStatus.podPhase, .restartCount]) | @tsv' \
+	| awk -v format="$FORMAT" -F'\t' '{printf format, $1, $2, $3}'
+}
+
+log () {
+	[ $1 ] || { echo "You must specify a namespace"; exit 1 ; }
+	[ $2 ] || { echo "You must specify a POD"; exit 1 ; }
+	curl -sS "$K8S_URL/api/v1/pod/$1/$2/log?relativeFrom=-10000&relativeTo=0" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
+	| jq -r '.logs[]'
+}
+
+if [ "${ACTION}" = "list-nodes" ]; then list_nodes; fi
+if [ "${ACTION}" = "list-pods" ]; then list_pods $2; fi
+if [ "${ACTION}" = "log" ]; then log $2 $3; fi
