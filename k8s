@@ -10,8 +10,8 @@
 USAGE=$(cat <<-END
     Usage: k8s <action>\n\n
     Must define the following global variables:\n
-	- K8S_URL         URL that point to your kubernetes web-ui\n
-	- K8S_AUTH_HEADER Authorization header\n
+	- K8S_URL          URL that point to your kubernetes web-ui\n
+	- K8S_AUTH_HEADER  Authorization header\n
 	\n
 	Available actions:\n
 	- list-nodes             Lists available nodes\n
@@ -55,6 +55,7 @@ log () {
 	| jq -r '.logs[]'
 }
 
+if [ "${ACTION}" = "--help" ]; then echo $USAGE; fi
 if [ "${ACTION}" = "list-nodes" ]; then list_nodes; fi
 if [ "${ACTION}" = "list-pods" ]; then list_pods $2; fi
 if [ "${ACTION}" = "log" ]; then log $2 $3; fi
