@@ -15,7 +15,7 @@ USAGE=$(cat <<-END
 	\n
 	Available actions:\n
 	- list-nodes             Lists available nodes\n
-	- list-pods <node>       Lists pods for a specific node\n
+	- list-pods <node>       Lists pods for all namespaced or for a specific node if specified\n
 	- log <namespace> <pod>  Shows the log for a specific POD\n
 END
 )
@@ -43,10 +43,12 @@ list_nodes () {
 list_pods () {
 	FORMAT="%-60s %-10s %8s\n"
 	printf "$FORMAT" "NAME" "STATUS" "RESTARTS"
-	[ $1 ] || { echo "You must specify a POD"; exit 1 ; }
-	curl -sS "$K8S_URL/api/v1/node/$1/pod?itemsPerPage=9999" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
+	URL="$K8S_URL/api/v1/pod?itemsPerPage=9999"
+	if [ ${1+x} ]; then URL="$K8S_URL/api/v1/node/$1/pod?itemsPerPage=9999"; fi 
+	curl -sS "$URL" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
 	| jq -r '(.pods[] | [.objectMeta.name, .podStatus.podPhase, .restartCount]) | @tsv' \
 	| awk -v format="$FORMAT" -F'\t' '{printf format, $1, $2, $3}'
+
 }
 
 log () {
