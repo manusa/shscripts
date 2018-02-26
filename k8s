@@ -41,13 +41,13 @@ list_nodes () {
 }
 
 list_pods () {
-	FORMAT="%-60s %-10s %8s\n"
-	printf "$FORMAT" "NAME" "STATUS" "RESTARTS"
+	FORMAT="%-60s %-10s %-20s %8s %-19s\n"
+	printf "$FORMAT" "NAME" "STATUS" "NAMESPACE" "RESTARTS" "CREATED"
 	URL="$K8S_URL/api/v1/pod?itemsPerPage=9999"
 	if [ ${1+x} ]; then URL="$K8S_URL/api/v1/node/$1/pod?itemsPerPage=9999"; fi 
 	curl -sS "$URL" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
-	| jq -r '(.pods[] | [.objectMeta.name, .podStatus.podPhase, .restartCount]) | @tsv' \
-	| awk -v format="$FORMAT" -F'\t' '{printf format, $1, $2, $3}'
+	| jq -r '(.pods[] | [.objectMeta.name, .podStatus.podPhase, .objectMeta.namespace, .restartCount, .objectMeta.creationTimestamp]) | @tsv' \
+	| awk -v format="$FORMAT" -F'\t' '{printf format, $1, $2, $3, $4, $5}'
 
 }
 
