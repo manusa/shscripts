@@ -34,10 +34,23 @@ awk -V >/dev/null 2>&1 || { echo >&2 "awk is required for this script" && exit 1
 ACTION=$1
 
 ENCODING_HEADER='Accept-Encoding: gzip, deflate, br'
+ACCEPT_HEADER='Accept: application/json, text/plain, */*'
 
 list_nodes () {
-	curl -sS "$K8S_URL/api/v1/node?itemsPerPage=100&namespace=&page=1" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
+	curl -sS "$K8S_URL/api/v1/node?itemsPerPage=900&namespace=&page=1" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" \
+	-H "$ACCEPT_HEADER" --compressed \
 	| jq -r '.nodes[] | .objectMeta.name'
+}
+
+list_all_pods () {
+	FORMAT="%-60s %-10s %-20s %8s %-19s\n"
+	printf "$FORMAT" "NAME" "STATUS" "NAMESPACE" "RESTARTS" "CREATED"
+	URL="$K8S_URL/api/v1/pod?itemsPerPage=9999"
+	if [ ${1+x} ]; then URL="$K8S_URL/api/v1/pod?filterBy=&itemsPerPage=999&name=&page=1"; fi 
+	curl -sS "$URL" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" -H "$ACCEPT_HEADER" --compressed \
+	| jq -r '(.pods[] | [.objectMeta.name, .podStatus.podPhase, .objectMeta.namespace, .restartCount, .objectMeta.creationTimestamp]) | @tsv' \
+	| awk -v format="$FORMAT" -F'\t' '{printf format, $1, $2, $3, $4, $5}'
+
 }
 
 list_pods () {
@@ -54,11 +67,15 @@ list_pods () {
 log () {
 	[ $1 ] || { echo "You must specify a namespace"; exit 1 ; }
 	[ $2 ] || { echo "You must specify a POD"; exit 1 ; }
-	curl -sS "$K8S_URL/api/v1/pod/$1/$2/log?relativeFrom=-10000&relativeTo=0" -H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" --compressed \
-	| jq -r '.logs[]'
+#&relativeFrom=-1&relativeTo=0
+	URL="$K8S_URL/api/v1/log/$1/$2?logFilePosition=end&referenceTimestamp=newest&offsetFrom=-2000000000&offsetTo=2000000000"
+	curl -sS "$URL" \
+	-H "Authorization: $K8S_AUTH_HEADER" -H "$ENCODING_HEADER" -H "$ACCEPT_HEADER" --compressed \
+	| jq -r '.logs[] | [.content] | @tsv'
 }
 
 if [ "${ACTION}" = "--help" ]; then echo $USAGE; fi
 if [ "${ACTION}" = "list-nodes" ]; then list_nodes; fi
+if [ "${ACTION}" = "list-all-pods" ]; then list_all_pods; fi
 if [ "${ACTION}" = "list-pods" ]; then list_pods $2; fi
 if [ "${ACTION}" = "log" ]; then log $2 $3; fi
